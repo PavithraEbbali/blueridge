@@ -726,3 +726,67 @@ Moved to `image-sources/` at the project root. Export is now 4.5MB
   FAQ accordion   click toggles aria-expanded true, panel mounts
   ZIP form        submits, live region reads back the entered ZIP
   Lenis           html.lenis present, smooth scrolling active
+
+
+## v1.7.0 — Badge fix, mobile responsiveness, repository
+
+### [FIX] "Most popular" badge overlapped the plan name
+The badge was absolutely positioned at `right-6 top-6`, and once the
+service-line icon was added to the header the title shifted right and ran
+underneath it — visible on "500 Mbps Internet".
+
+Moved into normal flow as a badge rail at the top of the card. The rail
+keeps its 24px height on every card, popular or not, so the speed block,
+price and CTA still line up across a row — the alignment fixed in v1.0.
+
+### [FIX] Desktop call button was rendering on phones
+`MagneticButton`'s base class list includes `inline-flex`. Passing
+`className="hidden sm:inline-flex"` did not hide it: `hidden` and
+`inline-flex` sit in the same CSS layer, so the winner is decided by
+stylesheet order, not by attribute order. The full "Call (855) 555-0143"
+button was therefore visible at 375px, pushing the header 16px past the
+viewport and giving the whole page a horizontal scroll.
+
+Wrapped in a `<div className="hidden sm:block">` instead. Measured after:
+page scrollWidth 391 -> 375 at a 375px viewport, no overflow.
+
+### [CHANGE] Mobile responsiveness pass
+- Type scales: hero h1 2.5rem -> 2rem (2.3rem from 400px), section
+  headings 2rem -> 1.7rem, offer price 3.5rem -> 2.9rem, split-panel plan
+  names 1.9rem -> 1.55rem, footer CTA 1.7rem -> 1.45rem, header wordmark
+  0.98rem -> 0.86rem, all stepping back up at `sm`.
+- Spacing: section padding py-20 -> py-14, hero pt-14/pb-24 -> pt-10/pb-16,
+  grid top margins mt-14 -> mt-10, card padding p-7/p-8 -> p-6.
+- Footer call CTA goes full width below `sm`.
+- Hero stat rail gutters tighten so three columns fit at 375px.
+
+### [CHANGE] Hero scrim switches axis on phones
+The scrim ran left-to-right, which works when the copy sits in the left
+column. On phones the copy spans the full width, so the ends of every line
+fell outside the shaded area. Below `sm` the scrim now runs top-to-bottom,
+following where the copy actually is.
+
+### [CHANGE] Aurora fields scale down on phones
+A 38rem blob behind a 375px viewport floods the section with one flat
+colour, and a 150px blur is disproportionately expensive to composite on a
+phone GPU for an effect nobody can resolve at that size. Blobs drop to
+16-20rem and the blur to 80px below `sm`.
+
+### [BUILD] Repository initialised
+`git init`, branch `main`, one commit of 56 files / 8954 insertions,
+remote set to https://github.com/PavithraEbbali/blueridge.git.
+
+`.gitignore` extended to cover `.vercel` and `*.tsbuildinfo`. Build output
+(`.next`, `out`) is not committed; `image-sources/` is, since those are the
+untouched originals behind every processed image.
+
+The push itself could not be completed from here: Git Credential Manager
+has nothing cached for github.com, and supplying credentials is not
+something to do on the user's behalf. The commit is ready; the user runs
+`git push -u origin main` and authenticates in their own terminal.
+
+### [BUILD] Vercel readiness
+`output: 'export'` is detected automatically by Vercel — framework preset
+Next.js, build command `npm run build`, output directory `out`. No
+environment variables, no backend, no API routes. README documents the
+import steps.
