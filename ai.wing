@@ -790,3 +790,44 @@ something to do on the user's behalf. The commit is ready; the user runs
 Next.js, build command `npm run build`, output directory `out`. No
 environment variables, no backend, no API routes. README documents the
 import steps.
+
+
+## v1.8.0 — Self-hosted fonts
+
+### [FIX] Vercel build failed in next/font
+Every Vercel deploy died at the same place:
+
+  app/layout.tsx
+  An error occurred in `next/font`.
+  TypeError: Cannot read properties of null (reading '1')
+    at next/dist/compiled/@next/font/dist/google/loader.js:122
+
+`next/font/google` downloads the Google Fonts stylesheet at build time and
+parses it. Vercel's build container could not reach fonts.googleapis.com,
+so the loader got a response it could not parse and dereferenced null. The
+same failure had appeared once locally after clearing `.next` (which drops
+the cached font files) and passed on retry, which is why it read as a
+transient network blip rather than a hard dependency.
+
+It is not transient on Vercel. The build had a mandatory outbound network
+call in it.
+
+Replaced with `next/font/local`, pointing at the identical latin-subset
+variable woff2 files the loader was downloading — pulled from the same
+fonts.gstatic.com URLs and committed to `app/fonts/`:
+
+  PlusJakartaSans-latin.woff2   27KB   weight range 500 800
+  Inter-latin.woff2             38KB   weight range 400 700
+
+Rendering is unchanged: same families, same subset, same weight ranges,
+same `display: swap` and CSS variables. Explicit `fallback` stacks added so
+the metric-adjusted fallback face is still generated.
+
+Verified after: `next/font/google` no longer imported anywhere, the export
+contains no reference to fonts.googleapis.com or fonts.gstatic.com, and
+both woff2 files are emitted to `_next/static/media`. The build now makes
+no network request at all.
+
+### [CHANGE] Next.js 15.5.4 -> 15.5.25
+15.5.4 carries CVE-2025-66478 and npm flags it deprecated on install.
+Moved to the latest patch on the same minor, clear of the 16.x migration.

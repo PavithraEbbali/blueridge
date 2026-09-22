@@ -1,23 +1,39 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
+import localFont from 'next/font/local';
 
 import './globals.css';
 import { site } from '@/lib/content';
 import SmoothScroll from '@/components/SmoothScroll';
 
-/* Blue Ridge sets its type in Avenir Next LT Pro. Plus Jakarta Sans carries the
-   same geometric-humanist character for display, with Inter for body copy. */
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ['latin'],
+/* Blue Ridge sets its type in Avenir Next LT Pro. Plus Jakarta Sans carries
+   the same geometric-humanist character for display, with Inter for body.
+ *
+ * Loaded from committed files rather than `next/font/google`. That loader
+ * fetches the Google Fonts stylesheet during the build, so the build needs
+ * outbound network — and it fails hard when it cannot get it:
+ *
+ *   TypeError: Cannot read properties of null (reading '1')
+ *   at next/dist/compiled/@next/font/dist/google/loader.js
+ *
+ * which is what broke the first Vercel deploys. These are the identical
+ * latin-subset variable woff2 files that loader was downloading, so the
+ * rendering is unchanged and the build no longer touches the network. */
+const jakarta = localFont({
+  src: './fonts/PlusJakartaSans-latin.woff2',
+  weight: '500 800',
+  style: 'normal',
   display: 'swap',
   variable: '--font-jakarta',
-  weight: ['500', '600', '700', '800'],
+  fallback: ['ui-sans-serif', 'system-ui', 'sans-serif'],
 });
 
-const inter = Inter({
-  subsets: ['latin'],
+const inter = localFont({
+  src: './fonts/Inter-latin.woff2',
+  weight: '400 700',
+  style: 'normal',
   display: 'swap',
   variable: '--font-inter',
+  fallback: ['ui-sans-serif', 'system-ui', 'sans-serif'],
 });
 
 export const metadata: Metadata = {
