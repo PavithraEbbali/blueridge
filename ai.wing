@@ -1,0 +1,728 @@
+# ai.wing — Structural Changelog
+# Blue Ridge Communications · Independent Authorized Retailer Landing Site
+# ---------------------------------------------------------------------------
+# Format: [BUILD] / [ADD] / [CHANGE] / [FIX] / [DATA] / [QA]
+# Every structural change, feature addition and component creation is logged
+# here for version tracking.
+# ---------------------------------------------------------------------------
+
+
+## v1.0.0 — Initial build
+
+### [BUILD] Project foundation
+- Next.js 15.5.4 · App Router · TypeScript (strict) · React 19.
+- Tailwind CSS v4 via @tailwindcss/postcss, CSS-first `@theme` configuration.
+- Manual scaffold: `create-next-app` refused the directory name
+  ("Blue Ridge Communications" — spaces and capitals violate npm naming),
+  so package.json / tsconfig / next.config / postcss.config were authored
+  directly. Package name set to `blue-ridge-authorized-retailer`.
+- Dependencies: framer-motion ^12, lenis ^1.3 (animation only — no backend,
+  no API routes, no database; this is a strict frontend build).
+- `.claude/launch.json` added with `autoPort: true` for local preview.
+
+### [DATA] Brand palette scraped from https://www.brctv.com
+Hex values extracted from the live computed stylesheet, ranked by usage:
+- #0866FF  electric   — primary action blue (most-used accent on brctv.com)
+- #002F8C  navy       — deep corporate blue
+- #1E398D  royal      — mid royal blue on panels
+- #021562  abyss      — darkest navy (base for the luxury dark surfaces)
+- #01A7E1  cyan       — bright sky accent
+- #B2ECFF  sky        — pale cyan tint
+- #F2FCFF  ice        — near-white icy background wash
+- #414042  ink        — charcoal body text
+- #F25648  coral      — warm contrast accent (used only for error states)
+Derived tokens `--color-br-void` / `--color-br-pitch` extend the navy ramp
+downward for the deep-space hero and dark sections.
+
+Typography: brctv.com sets Avenir Next LT Pro (licensed, not redistributable).
+Substituted Plus Jakarta Sans for display and Inter for body — the closest
+geometric-humanist pairing available through next/font/google, self-hosted at
+build time so there is no render-blocking font request.
+
+### [DATA] Service audit of https://www.brctv.com
+Pages audited: /, /internet, /fiber-internet, /streaming-and-tv, /tv,
+/mobile, /home-phone, /internet-mobile-brtp-offers, /internet/homefi,
+/standard-pricing, /disclosure.
+
+Services Blue Ridge sells natively, and therefore built:
+- Fiber .......... Blue Ridge Fiber, 100% fiber-to-the-home (no public rate card)
+- Cable .......... 7 published speed tiers, 300 Mbps to 2 Gig
+- Bundles ........ 3-year internet + free mobile line offers
+- TV ............. Blue Ridge Stream, Stream+ Live TV, 5 Live TV packages
+- Mobile ......... Free Unlimited Line, Unlimited $30/line, Shared Data $15/line
+- Phone .......... Blue Ridge Home Phone (no public rate card)
+
+Blue Ridge also sells Smart Home Security. It is outside the six service
+lines specified for this page and was deliberately not added.
+
+### [ADD] lib/content.ts — single source of truth
+Every price, speed, feature bullet, FAQ, fine-print row, legal page and nav
+item on the site is read from this one file. No component hard-codes copy or
+pricing. Exports:
+- `PlanItem` / `ServiceSection` / `FeatureItem` / `FaqItem` / `LegalPage` types
+- `site` — retailer identity, sales phone, disclosure string, service area
+- `hero` — headline, subhead, live promos, stat rail
+- `marqueeItems` — trust ticker content
+- `serviceSections` — the six service lines in their rendered order
+- `streamOptions` — the two Blue Ridge Stream platform options
+- `finePrint` — inclusions/fees comparison matrix + notes
+- `whyUs` — staggered feature grid
+- `faqs` — accordion content
+- `legalPages` — the 8 legal policies, with full body copy
+- `footer` — columns and reseller disclosure
+- Helpers: `formatSpeed()`, `ctaLabel()`, `lowestPrice`
+
+### [ADD] Components
+
+Animation primitives
+- `SmoothScroll.tsx` ....... Lenis smooth scrolling + anchor interception,
+                            disabled entirely under prefers-reduced-motion
+- `Reveal.tsx` ............. `useSafeInView` hook, `Reveal`, `TextReveal`
+                            (per-word rise + unblur), `StaggerGroup`/`StaggerItem`
+- `MagneticButton.tsx` ..... cursor-following CTA with spring damping, a label
+                            that drifts further than the shell, and a sheen sweep
+- `BlackHoleField.tsx` ..... canvas accretion disk + event horizon + starfield
+- `SectionWipe.tsx` ........ `ClipWipe` (clip-path section transitions) and
+                            `Parallax` (scroll-linked depth)
+- `ConnectivityPath.tsx` ... SVG path-draw of a fiber run reaching a home network
+- `Marquee.tsx` ............ CSS-only infinite ticker, pauses on hover
+
+Content components
+- `PriceLockup.tsx` ........ THE universal price formatter (see below)
+- `PlanCard.tsx` ........... 3D tilt pricing card with specular highlight
+- `TopDisclosureBar.tsx` ... persistent retailer disclosure strip
+- `Header.tsx` ............. sticky header, scroll-spy nav pill, mobile sheet
+- `Hero.tsx` ............... promos, H1, ZIP checker + call button, stat rail
+- `ServiceBlock.tsx` ....... renders any `ServiceSection`; three layouts
+                            (split / grid / TV ladder) chosen from the data
+- `FinePrintGrid.tsx` ...... desktop table + mobile card stack
+- `WhyUs.tsx` .............. staggered feature grid with wide-span cards
+- `Faq.tsx` ................ accordion with sticky heading column
+- `Footer.tsx` ............. dark footer, call band, 8 legal links, disclosure
+- `Icons.tsx` .............. inline SVG glyph set (no icon-font payload)
+
+### [ADD] Universal price lockup
+`<PriceLockup plan={plan} tone size />` is the only place a price is
+formatted anywhere on the site:
+- muted "As low as" eyebrow in 0.7rem uppercase
+- dollar sign set small and raised
+- large integer at 3.5rem (lg) / 2.5rem (md), tabular figures, -0.045em tracking
+- cents rendered as muted raised superscript
+- "/mo" suffix baseline-aligned to the integer
+- promo qualifier beneath, constrained to 26ch
+- a plan with no `price` renders the "Pricing by phone" lockup instead of a
+  fabricated number
+
+### [ADD] Routes
+- `/` .................... the one-page landing site
+- `/legal/[slug]` ........ 8 statically generated legal pages
+- `/not-found` ........... branded 404
+
+### [ADD] Section hierarchy (fixed order)
+1. Top disclosure bar
+2. Sticky header with anchor nav + call CTA
+3. Hero — live promos, H1, ZIP checker AND call button, black hole background
+4. Trust marquee (dual counter-scrolling rails)
+5. Fiber
+6. Cable
+7. Bundles
+8. TV
+9. Mobile
+10. Phone
+11. Honest fine-print grid
+12. Why Blue Ridge (staggered grid)
+13. FAQ accordion
+14. Legal footer
+
+Tone alternates dark / light down the page; every dark-to-light handoff is a
+scroll-driven clip-path wipe rather than a hard edge. The fine-print-to-
+features seam is dark-on-dark, so it uses a luminous hairline instead.
+
+### [FIX] motion() called during render
+`Reveal` built its motion component with `motion(as)` inside the render body,
+which creates a new component type on every render and remounts the subtree.
+Replaced with static `motion.div` / `motion[as]` references.
+
+### [FIX] Reveals stranded at opacity 0 when IntersectionObserver stays silent
+Framer Motion's `whileInView` is a thin wrapper over IntersectionObserver,
+which never reports in a few real situations — a tab that loads while hidden,
+a prerender or screenshot pass, some embedded webviews. Every animated
+element would then be stuck at opacity 0 and the page would read as blank.
+Replaced `whileInView` with a `useSafeInView` hook that observes normally but
+arms a 1.4s fallback at mount; any genuine observer callback disarms it, so
+below-the-fold content still animates on scroll. The same guard was added to
+`ConnectivityPath`.
+
+### [CHANGE] Black hole tuning
+First pass centred the horizon behind the headline at 0.29 of the viewport
+minimum, which haloed the type and buried the copy. Moved the horizon to
+82% of hero height at 0.17 scale, cut the photon-ring alpha roughly in half,
+biased particle density inward and drew the event horizon before the ring so
+the disk reads as a horizon line beneath the headline rather than a target
+behind it.
+
+### [CHANGE] Headline accent gradient
+`text-gradient-brand` ramps across four stops, so applying it per word (the
+reveal animation splits the phrase into per-word spans) restarted the ramp on
+every word and broke mid-word. Added `text-accent-glow`, a tight two-stop
+vertical ramp that reads identically at any word position.
+
+### [QA] Negative constraints verified
+- No support routing. Nothing directs a customer to the carrier for billing,
+  outages or support.
+- Hero carries BOTH the ZIP availability checker AND a prominent call button.
+- CTA copy rule enforced through `ctaLabel()`: a plan with a price renders
+  "Call to order", a plan without one renders "Call for pricing". Raw phone
+  numbers appear as button text only in the navbar and the footer.
+- No competitor bashing; no "ordering channel" or similar phrasing.
+- No empty placeholder sections. Every service line rendered is one Blue
+  Ridge sells natively.
+- No links to official Broadband Facts labels.
+- No "Pricing observed [date]" stamps anywhere.
+- No FAQ asking whether this is the official site, and none explaining
+  authorized-retailer legal structure.
+- Footer carries the reseller disclosure and all 8 required legal pages.
+
+### [QA] Performance and accessibility
+- Production build: 12 static routes, 175 kB First Load JS on `/`.
+- Canvas clamps DPR to 1.5, scales particle count to viewport width, and
+  suspends its rAF loop via IntersectionObserver and `visibilitychange`.
+- Marquee is pure CSS — no main-thread work.
+- `prefers-reduced-motion` honoured globally and per component: Lenis does
+  not mount, the canvas paints one static frame, tilt and magnetic effects
+  are bypassed, and path draws render complete.
+- Fonts self-hosted through next/font with `display: swap`.
+- Skip link, focus-visible rings, semantic landmarks, `aria-expanded` on the
+  accordion and mobile menu, `aria-live` on the ZIP result, table markup with
+  scoped headers for the fine-print grid.
+
+### [NOTE] Before launch
+`site.phoneDisplay` / `site.phoneHref` in `lib/content.ts` currently hold
+(855) 555-0143, from the 555-01xx range reserved for fictional use, so the
+build never dials a live third-party line. Replace both with the tracked
+sales number and every CTA across the site updates.
+
+### [FIX] Blank render with scripting disabled
+Framer Motion serialises its `initial` state into the SSR markup as inline
+`opacity: 0`. If the bundle never executes — scripting off, a CDN failure —
+the page would render blank. Added a `<noscript>` stylesheet that forces
+every element carrying an inline zero opacity back to visible.
+
+### [CHANGE] Plan card price alignment
+Prices sat below the "Ideal for" chip list, which wraps to a different number
+of lines per tier, so the price lockups landed at different heights across a
+row — visible immediately on the seven-tier cable grid. Moved the price
+directly under the speed readout, which is a uniform height on every card.
+Measured after the change: 0px spread in price position within every row of
+the cable, bundle and mobile grids, and 0px spread on CTA position.
+
+
+## v1.1.0 — Brand alignment pass
+
+### [CHANGE] Site now presents as Blue Ridge Communications
+`site.retailerName` changed from "Ridgeline Connect" to "Blue Ridge
+Communications", which propagates to the header wordmark, the footer, page
+titles and Open Graph metadata through the single source of truth.
+
+The footer disclosure had to be reworded rather than string-replaced: the
+original read "<retailer> is an independent authorized retailer of Blue
+Ridge Communications", which becomes self-referential once the retailer name
+IS Blue Ridge Communications. It now reads "This website is operated by an
+independent authorized retailer of Blue Ridge Communications and is not the
+corporate website of Blue Ridge Communications."
+
+Disclosure remains prominent in three places: the persistent top bar, the
+"Authorized Retailer" line under the header wordmark, and the full footer
+disclosure.
+
+### [DATA] Exact section colours pulled from brctv.com
+The first pass sampled brand colours from the computed stylesheet. This pass
+went further and read the actual section background gradients, which is what
+gives the site its colour distribution:
+
+  speeds section    linear-gradient(#FFFFFF 0%, #F2FCFF 50%, #B2ECFF 100%)
+  products section  linear-gradient(0deg, #CDF9FD 0%, #FFFFFF 100%)
+  hero deal band    linear-gradient(#0077DD 0%, #00368C 99%)
+  footer            #1E398D
+  flat light fill   #F2FCFF
+
+New tokens: --color-br-azure #0077DD, --color-br-deep #00368C,
+--color-br-aqua #CDF9FD. Removed --color-br-pitch and --color-br-void, the
+two near-black navies invented for the previous dark-dominant treatment, and
+--color-br-electric-soft, now unused.
+
+### [CHANGE] Light-dominant surface system
+The site was dark-dominant; brctv.com is light-dominant with vibrant and
+deep-navy bands as anchors. Added `components/Surfaces.ts` with four
+surfaces — deep, vibrant, light, white — each mapping to one of their
+gradients, plus a `dark` flag that drives text treatment below section level.
+
+Distribution down the page:
+  hero        surface-hero     (azure to abyss)
+  marquee     surface-royal    (#1E398D)
+  fiber       surface-light
+  cable       surface-white
+  bundles     surface-vibrant  (their deal gradient — the offer-led section)
+  tv          surface-light
+  mobile      surface-white
+  phone       surface-light
+  fine print  surface-deep
+  why us      surface-light
+  faq         surface-white
+  footer      surface-royal    (#1E398D, matching theirs exactly)
+
+### [ADD] surface-hero
+The hero could not use their deal gradient verbatim. That band on brctv.com
+carries one line of text; this hero carries a headline, a paragraph, a form
+and a stat rail. Starting at #0077DD left white body copy under 4.5:1. The
+hero runs the same three brand stops but reaches the deep end faster:
+linear-gradient(172deg, #0077DD 0%, #00368C 38%, #021562 100%).
+
+### [CHANGE] Hero backdrop — black hole replaced with RidgeAurora
+The black hole was generic and off-brand. Replaced with the company's own
+motif: brctv.com uses themes/custom/brctv/images/mtns-lt-blue.svg, two
+angular peaks filled #00A7E1 at 6% opacity, as a section background. That
+geometry is extended here into four parallax ridge layers with sunlit crest
+highlights, a drifting aurora and a sparse starfield.
+
+`RidgeAurora.tsx` is a server component — zero JS shipped. The aurora and
+shimmer are CSS keyframes on transform and opacity only, so the backdrop is
+GPU-composited, runs no rAF loop and costs nothing on the main thread. The
+old canvas implementation ran a per-frame particle simulation.
+
+The same peak geometry is reused as `ridge-motif`, an inline data-URI SVG
+applied to the light sections, exactly as Blue Ridge uses it.
+
+### [CHANGE] Hero restructured
+- Removed the "Call to order" button. The hero now leads with the ZIP
+  availability checker alone; the call CTA remains in the header, in every
+  plan card and in the footer.
+- Added a featured-offer panel carrying the headline promotion currently
+  running on brctv.com — $50/month for up to 500 Mbps over 36 months, a free
+  unlimited mobile line for 12 months, a free year of Total Protection, and
+  included modem, HomeFi and Stream units — with its own price lockup and
+  the AutoPay/Paperless qualifier.
+- Two-column layout: copy and ZIP checker left, offer panel right, with the
+  three supporting promotions below.
+
+### [REMOVE] "How the connection reaches you"
+The entire panel is gone, along with `ConnectivityPath.tsx` and its SVG
+path-draw animation and the `.draw-path` / `.draw-dot` CSS. The fiber
+section's supporting column is now the "Ideal for" cards alone.
+
+### [CHANGE] All section copy rewritten for a professional register
+Conversational and figurative headings replaced throughout — hero H1 and
+subhead, all six service lines, the fine-print grid, the features grid, the
+FAQ intro and the footer CTA.
+
+  before                                    after
+  "High-speed internet that holds its       "High-speed internet for Northeast
+   ground, and its price."                   and Central Pennsylvania."
+  "Fiber, straight to the house"            "Fiber-optic internet, direct to
+                                             your home"
+  "Seven speed tiers. One unlimited         "Seven speed tiers, every one with
+   connection."                              unlimited data"
+  "Three-year deals with a mobile line      "Internet and mobile with a
+   on the house"                             36-month price guarantee"
+  "Television that stopped fighting the     "Live television and streaming in
+   internet"                                 a single interface"
+  "Mobile priced like it belongs on your    "Mobile service at straightforward
+   internet bill"                            monthly rates"
+  "A landline worth keeping"                "Home phone service with unlimited
+                                             calling"
+  "What is actually on the bill"            "What is included, and what is
+                                             billed separately"
+  "Seventy-five years in the same valleys"  "Serving Pennsylvania communities
+                                             since 1950"
+  "The things worth knowing before you      "What to review before you order"
+   order"
+  "Ready to lock in your rate?"             "Confirm availability at your
+                                             address"
+
+Two of these had been hard-coded in components, which violated the
+single-source rule. Added `faqIntro` and `footerCta` to lib/content.ts and
+wired both through.
+
+### [FIX] Header contrast over the hero
+Unscrolled, the header sits over the lightest stop of the hero gradient,
+where the wordmark and white/75 nav links fell below AA. Added a scrim
+behind the header — a top-down #021562 fade that is present when transparent
+and fades out as the bar condenses — and raised inactive nav links to
+white/85. Verified in the DOM that the wordmark renders #FFFFFF and the
+links white/85 against the darkened strip.
+
+
+## v1.2.0 — Photography
+
+### [DATA] Eight images received and processed
+All eight arrived as 1408×768 PNG, roughly 2.2MB each (17.5MB total), rather
+than the per-slot aspect ratios and JPG format the manifest asked for. Two
+problems had to be solved before they could be used.
+
+**Gemini's visible watermark.** Every frame carried a four-point sparkle
+roughly 118px in from the right edge and 120px up from the bottom. Each file
+was cropped on whichever edge cost its composition least:
+
+  bottom 150px   fiber-installation, cable-work-from-home,
+                 tv-family-evening, tv-voice-remote, homefi-shelf,
+                 local-technician-porch          -> 1408×618
+  right 178px    mobile-main-street (subject's feet sit low in frame),
+                 phone-kitchen-counter (notepad runs to the bottom edge)
+                                                 -> 1230×768
+
+**Weight.** Converted to WebP at quality 84. 17.5MB of PNG became 727KB —
+a 96% reduction. Originals preserved untouched in `public/images/_source/`.
+
+Processing used `sharp`, added as a dev dependency. Next.js also uses sharp
+for its own image optimization in production, so it is not extra surface.
+
+### [ADD] Photography wired through the single source of truth
+Images are content, so they live in `lib/content.ts` alongside the copy they
+illustrate, not scattered through components. Added a `Media` type
+(`{ src, alt }`), an optional `media` field on `ServiceSection` and on
+`FeatureItem`, and a required `media` on each `streamOptions` entry.
+
+They are statically imported rather than referenced by URL string, which
+lets Next.js derive intrinsic dimensions and generate a blur placeholder for
+each at build time — that is what prevents layout shift as they load.
+
+Placement:
+  fiber-installation      fiber section, heads the supporting column
+  cable-work-from-home    cable section, beside the heading
+  tv-voice-remote         Blue Ridge Stream card header
+  tv-family-evening       Blue Ridge Stream+ Live TV card header
+  mobile-main-street      mobile section, beside the heading
+  phone-kitchen-counter   home phone section, heads the supporting column
+  local-technician-porch  Why Us, "Local customer service" card
+  homefi-shelf            Why Us, "HomeFi with eero Pro 7" card
+
+The HomeFi card was promoted to a wide span so its photo has room.
+
+### [ADD] components/SectionMedia.tsx
+A rounded photo frame with the treatment that keeps photography sitting on
+brand rather than looking pasted in: a navy gradient veil in multiply, a
+#0077DD wash in overlay, an inset hairline that works on both light and dark
+surfaces, and a slow scale on hover. Grid sections render it beside the
+heading in a two-column header; split sections render it above the
+"Ideal for" cards.
+
+### [CHANGE] Section layouts adapted for photography
+- Grid-layout sections with a `media` field now render heading and photo as
+  a two-column header rather than a full-width heading block.
+- The two TV platform cards gained edge-to-edge photo headers with a
+  gradient fade into the card body.
+- Why Us cards render as photo cards when they carry `media`, and as glyph
+  cards when they do not.
+
+### [NOTE] Outstanding
+- `hero-ridges-dusk` was not delivered. The hero still uses the RidgeAurora
+  backdrop, which stands on its own; the photographic layer can be added
+  behind it whenever the file arrives.
+- `mobile-main-street` has faint garbled lettering on the background
+  storefront signage — an AI artifact. It is small, well out of focus and
+  sits under the section's gradient veil, but it is the one image that would
+  not survive close inspection at full size.
+
+
+### [ADD] Hero photograph
+`hero-ridges-dusk` was in the folder after all — an earlier directory
+listing did not show it and it was wrongly reported as missing.
+
+Processed like the rest: cropped bottom 150px to remove the sparkle
+watermark (the foreground trees along the bottom edge were the least
+valuable part of the frame), then enlarged to 2752px wide with lanczos3
+before encoding. The enlargement adds no detail, but the hero is full-bleed
+and a 1376px source left the browser upscaling ~2.1x on a 2x display; doing
+it here keeps the enlargement clean and stops Next.js stretching to its
+3840px candidate. 1.82MB PNG -> 108KB WebP at 2752x1236.
+
+### [CHANGE] RidgeAurora replaced by HeroBackdrop
+The drawn SVG ridge layers are gone. Stacking illustrated peaks over
+photographed ones read as duplication, so the photograph now carries the
+depth on its own. `RidgeAurora.tsx` deleted, `HeroBackdrop.tsx` added.
+
+### [FIX] Colour grade was burying the photograph
+The first version of HeroBackdrop ran a multiply layer
+(azure/55 -> deep/70 -> abyss/95), an overlay pass, two blooms and a
+left scrim at abyss/70 over the image. Combined, they flattened the
+photograph into what looked like a plain blue gradient — the ridgelines
+were completely invisible, and it read as though the image had failed to
+load. Confirmed by zeroing the overlay opacities in the live DOM, which
+brought the photograph straight back.
+
+The exposure is already squarely in the brand's blue range, so it does not
+need a colour grade at all — only enough shading to carry white type. Both
+blend layers were removed. What remains is a flat abyss/30 wash, a
+left-weighted scrim for the copy column, a top wash under the header and a
+base wash into the next section. The ridgelines now read clearly behind the
+offer panel while the headline keeps its contrast.
+
+
+## v1.3.0 — Navbar, promotion emphasis, layout cleanup
+
+### [FIX] Header rendered against white, not the hero
+The header is `sticky`, which keeps it in normal flow, so it sits on the
+page background rather than over the hero. Left transparent, it rendered
+against the white body — and the scrim added in v1.1 to darken the hero
+was in fact darkening white, producing the grey band visible at the top of
+the page.
+
+The scrim is gone. The header now carries its own brand surface: solid
+#021562 beneath the royal disclosure bar, with a faint azure radial so it
+is not a flat block, going frosted on scroll as before.
+
+### [CHANGE] Hero overlay reduced
+The grade was still heavier than it needed to be after v1.2. Flat wash
+30% -> 12%, left scrim mid-stop 35% -> 18%, blooms trimmed, and the
+redundant top wash removed now that the header is opaque. The ridgelines
+read clearly across the full width.
+
+### [ADD] Promotion and headline emphasis
+- `.promo-ring` — a conic-gradient border sweep around the hero offer
+  panel, driven by an `@property` angle so it animates on the compositor.
+- `.promo-glow` — a breathing cyan bloom behind the panel, synced to the
+  same 7s period.
+- `.accent-pulse` — a slow luminance pulse on the headline accent words.
+- `.headline-highlight` — a brand accent rule that wipes in beneath the
+  headline once the word reveal has settled.
+All four are disabled under prefers-reduced-motion.
+
+### [ADD] mediaAsBackground
+New optional flag on `ServiceSection`. When set, the section photo renders
+full-bleed behind the content instead of as a framed card, and the section
+switches to its dark treatment regardless of the surface the page assigned
+it. Applied to Home Phone. The split layout suppresses the inline media
+card when the flag is set, so the photo is never shown twice.
+
+### [CHANGE] Why Us grid regularised
+Photo cards and glyph cards shared one `auto-rows-fr` grid, so every text
+card stretched to the height of a photo card and sat mostly empty. Split
+into two grids: the two photo cards as an even pair, then the six
+remaining commitments on a three-up grid. Measured after the change —
+photo row 2x 606x456, glyph rows 3x 397x222 and 3x 397x222, all uniform.
+
+### [CHANGE] Copy
+- "Mobile service at straightforward monthly rates"
+    -> "Nationwide mobile service, priced per line"
+- "What is included, and what is billed separately"
+    -> "Inclusions, equipment and billing terms"
+  Both supporting paragraphs rewritten to match.
+
+### [CHANGE] Footer copyright
+Year removed; now reads "© Blue Ridge Communications. All rights
+reserved." The `new Date().getFullYear()` call went with it.
+
+
+## v1.4.0 — Ambient motion, promotion emphasis, copy density
+
+### [ADD] components/AuroraField.tsx
+Three brand-coloured blobs on independent drift paths (30s / 42s / 36s, so
+they never sync), heavily blurred so they read as a slow shift of light
+rather than discrete shapes. `tone` picks the palette: cyan/azure/sky on
+the light surfaces, cyan/electric/royal on the deep ones.
+
+Pure CSS keyframes on transform only, and a server component, so it adds
+no client JS and no main-thread work. Now present on all eight sections —
+fiber, cable, bundles, tv, mobile, fine print, why us, faq.
+
+It replaced the scroll-linked `Parallax` blobs in those sections. Those
+only moved while scrolling; the aurora is always alive, which is what
+makes the page feel less static when it is sitting still. `Parallax`
+remains exported for the hero's photo depth.
+
+### [ADD] Motion utilities in globals.css
+- `.aurora-a/b/c` — the three drift paths
+- `text-accent-live` — replaces the static accent ramp on the hero
+  headline with the same brand colours panning across 260% background-size
+- `.rule-live` — the headline accent rule keeps its gradient panning after
+  the wipe-in finishes
+- `.sheen-sweep` — a skewed light sweep crossing the offer panel every 6.5s
+- `.levitate` — a 10px vertical float on the offer panel
+- `.mote` — drifting light motes rising through the hero
+All disabled under prefers-reduced-motion.
+
+### [ADD] components/CountUp.tsx
+The hero's featured price counts from 0 to 50 on first view. It reserves
+its final width with an invisible copy of the finished number, so the
+lockup does not reflow while the digits change, and it renders the final
+value immediately under prefers-reduced-motion.
+
+### [CHANGE] Hero overlay reduced again
+Flat wash 12% -> 6%, left scrim mid-stop 18% -> 10%. The ridgelines,
+cloud detail and sky gradient now all read clearly while the headline
+keeps its contrast against the left-weighted scrim.
+
+### [CHANGE] Why Us copy density
+The section was the densest text block on the page. Description cut from
+~230 characters to 102; card bodies from 120-160 characters down to
+35-85. Measured after: glyph card height 222px -> 200px, all uniform.
+The `span: 'wide'` flags were dropped from the data since the grid now
+derives its layout from whether a card carries a photo.
+
+Examples:
+  "The people answering the phone live in the same communities the network
+   runs through. That is the whole reason the service quality holds up."
+    -> "The team answering your call lives in the communities the network
+        serves."
+  "CableFax Magazine named Blue Ridge its 2025 Independent Operator of the
+   Year: small-town values running on genuinely modern infrastructure."
+    -> "Named by CableFax Magazine in 2025."
+
+### [QA] Cost of the motion layer
+Page JS 18.6 kB -> 22 kB (the CountUp component). Everything else is CSS
+on the compositor: no rAF loops, no scroll listeners, no client JS for the
+aurora fields.
+
+
+### [CHANGE] Hero photograph now shown untinted
+Removed every colour layer sitting over the hero image: the flat
+`bg-br-abyss/6` wash, the three drifting aurora blooms (cyan/electric/
+azure), and the `saturate-[1.05]` filter on the image itself. Together
+they were pulling the frame toward one flat blue and flattening the
+ridgelines.
+
+The left legibility scrim was rebuilt with hard stops rather than a smooth
+full-width fade — 0.80 at 0%, 0.62 at 18%, 0.28 at 36%, 0.06 at 48%, fully
+transparent by 56% — so the copy column keeps its contrast and the right
+44% of the photograph is completely unmodified. Verified in the DOM: one
+full-frame layer, image filter `none`.
+
+What is left over the photograph is six 2-3px white motes and a bottom
+wash confined to h-40 for the handoff into the next section.
+
+
+### [FIX] Hero photograph was being upscaled, which is what made it soft
+Reported as "clarity is not there". Measured in the browser: the served
+bitmap was being scaled up 7.12x to cover the hero box (2.3x even on a
+wide desktop). Two causes, both mine.
+
+1. The watermark crop took 150px off the BOTTOM. That was the wrong edge.
+   It discarded 20% of the vertical pixels and pushed the aspect out to
+   2.23:1, while the hero container is roughly 1.32:1. `object-cover`
+   therefore crops the sides and scales to fill the HEIGHT — the exact
+   dimension that crop had shrunk. Re-cropped from the untouched
+   `_source` PNG trimming the RIGHT edge instead: 1230x768 at 1.60:1,
+   full height retained, then enlarged to 2560x1598 with lanczos3 at
+   quality 90. 263KB.
+
+2. `sizes="100vw"` was wrong for a cover-fitted image. Cover needs
+   containerHeight x sourceAspect pixels of width, which is well beyond
+   the viewport width, so Next.js was picking a variant far too small and
+   the browser was stretching it. Now declares
+   `(min-width: 1280px) 150vw, (min-width: 768px) 200vw, 340vw`.
+
+Added 2560 to `images.deviceSizes` so the candidate set contains an exact
+match for the source; without it the step above 2048 is 3840 and the
+optimizer would upscale past the real pixel count for nothing.
+
+Measured after: cover scale 7.12x -> 1.20x. Forest texture, autumn colour,
+the warm valley lights and the star field are all legible again.
+
+
+## v1.5.0 — Card iconography
+
+### [ADD] ServiceGlyph — one mark per product family
+Six hand-drawn 24px stroke glyphs in the existing icon style, keyed by
+`ServiceLine` so any component can render the right mark from plan data
+alone:
+  fiber   strands converging into a lit connector
+  cable   modem with a signal arc
+  bundle  stacked package solid
+  tv      screen on a stand
+  mobile  handset with reception arcs
+  phone   desk telephone
+
+The same glyph now appears wherever a product family is referenced, so the
+fiber mark on a plan card and the fiber column in the inclusions table are
+visibly the same thing.
+
+### [ADD] Three feature glyphs
+`gauge` (speed), `gift` (free offer) and `layers` (tier) added to
+`FeatureIcon`, for the hero's supporting promotions.
+
+### [CHANGE] Icons placed on the cards that had no visual anchor
+- Plan cards (cable, bundles, mobile) — service badge beside the plan
+  name; header restructured to a flex row to hold it. 13 cards.
+- Split panels (fiber, home phone) — 48px service badge above the eyebrow.
+- Live TV tier cards — 36px badge above the eyebrow. 5 cards.
+- Hero supporting promotions — icon in a bordered tile, card restructured
+  to icon-beside-text. 3 cards.
+- Inclusions table — service badge in each column header, and in the
+  mobile card stack, so the columns are identifiable without reading.
+
+Each badge inherits its surface's treatment (sky on glass over the dark
+sections, electric on ice over the light ones) and picks up the card's
+hover state.
+
+### [NOTE] Build
+A first `npm run build` after clearing `.next` failed in `next/font`
+fetching the Google Fonts stylesheet — a network timeout, not a code
+fault. The retry succeeded. Worth knowing because clearing `.next` drops
+the cached font files, so the next build needs network.
+
+
+## v1.6.0 — Static HTML export
+
+### [BUILD] output: 'export'
+`npm run build` now emits a folder of plain HTML/CSS/JS in `out/` that runs
+on any static host with no Node process. The client bundle still ships, so
+every animation behaves identically: Lenis smooth scrolling, the aurora
+fields, the promo ring sweep and glow, the panel sheen and levitation, the
+light motes, the panning headline gradient, 3D card tilt, magnetic buttons,
+clip-path section wipes, staggered reveals and the CSS marquee.
+
+`trailingSlash: true` so each route is its own directory with an
+index.html, which is what shared hosting and bucket-style hosts expect.
+
+Output:
+  out/index.html
+  out/legal/<8 policies>/index.html
+  out/404.html
+  out/images/         9 webp
+  out/_next/          22 js chunks, 1 css, 11 woff2
+
+### [CHANGE] images.unoptimized
+The Next.js image optimizer is a server feature and cannot run on a static
+host, so originals are served directly. This turned out to be an
+improvement rather than a compromise: the hero now ships its full
+2560x1598 source and renders at a cover scale of 0.68 — downscaled, so
+genuinely sharp. Under the dev optimizer it was still being upscaled 1.20x.
+
+### [FIX] Static export shipped a visible "$0" price
+`CountUp` initialised its state to zero, so the prerendered HTML contained
+`$0` for the featured offer and only corrected itself once JavaScript
+hydrated and the count finished. Anyone without JavaScript, any crawler,
+and any visitor whose tab was backgrounded (requestAnimationFrame is
+suspended there, stranding the count at its start value) would have seen
+the wrong price. A wrong price is a worse failure than a missing
+animation.
+
+Rewritten so correctness leads:
+  - state starts at the FINAL value, so the exported HTML carries the real
+    price
+  - the reset to zero runs in a layout effect, before paint, so the count
+    still starts from zero on screen with no flash of the total
+  - a guard timer force-sets the final value if the animation has not
+    completed in time, which covers the suspended-rAF case
+Verified in out/index.html: both the width-reservation span and the
+visible span now read 50.
+
+### [CHANGE] Originals moved out of public/
+`public/images/_source/` and the two markdown briefs were being copied
+into the export, taking it to 24MB and publishing the untouched PNGs.
+Moved to `image-sources/` at the project root. Export is now 4.5MB
+(992KB images, 2.5MB JS/fonts/CSS).
+
+### [QA] Static export verified served from python -m http.server
+  /                         200
+  /legal/tcpa-policy/       200
+  /legal/pci-dss/           200
+  /images/hero-ridges-dusk.webp  200
+  hero image      2560x1598, cover scale 0.68 (sharp)
+  aurora blobs    24
+  light motes     6
+  promo ring      1      sheen sweep 1      accent-live 4
+  svg icons       202
+  FAQ accordion   click toggles aria-expanded true, panel mounts
+  ZIP form        submits, live region reads back the entered ZIP
+  Lenis           html.lenis present, smooth scrolling active
